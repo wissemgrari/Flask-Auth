@@ -72,11 +72,63 @@ class Register(Resource):
 			return app.response_class(response=json.dumps({"error": "email already in use"}), status=400, mimetype='application/json')
 			
 
+class Course(Resource):
+	# GET all courses
+	def get(self):
+		query = "SELECT * FROM course"
+		res = engine.execute(query).all()
+		if(res):
+			return jsonify({"courses": [dict(row) for row in res]})
+		else:
+			return jsonify({'Error', 'Something went wrong!'})
+	
+	# Create course
+	def post(self):
+		NAME = request.json['name']
+		CATEGORY = request.json['category']
+
+		query = "INSERT INTO course (name, category) VALUES (%s, %s)"
+		res = engine.execute(query, NAME, CATEGORY)
+		if(res):
+			return app.response_class(response=json.dumps({"MESSAGE": "course created"}), status=200, mimetype='application/json')
+		else:
+			return app.response_class(response=json.dumps({"error": "something went wrong"}), status=400, mimetype='application/json')
+
+	# update course
+	def put(self, id):
+		# Get data from client
+		NAME = request.json['name']
+		CATEGORY = request.json['category']
+
+		query = "SELECT * FROM course WHERE id=%s"
+		res = engine.execute(query, id).first()
+		if(res):
+			query = "UPDATE course SET name=%s, category=%s WHERE id=%s"
+			res = engine.execute(query, NAME, CATEGORY, id)
+			return app.response_class(response=json.dumps({"MESSAGE": f"course with id: {id} updated"}), status=200, mimetype='application/json')
+		else:
+			return app.response_class(response=json.dumps({"MESSAGE": f"There's no course with id: {id}"}), status=404, mimetype='application/json')
 
 
+
+	# delete course
+	def delete(self, id):
+		# check if course exist in the DB
+		query = "SELECT * FROM course WHERE id=%s"
+		res = engine.execute(query, id).first()
+		if(res):
+			query = "DELETE FROM course WHERE id=%s"
+			res = engine.execute(query, id)
+			return app.response_class(response=json.dumps({"MESSAGE": f"course with id: {id} deleted"}), status=200, mimetype='application/json')
+		else:
+			return app.response_class(response=json.dumps({"MESSAGE": f"There's no course with id: {id}"}), status=404, mimetype='application/json')
+		
 # adding the defined resources along with their corresponding urls
 api.add_resource(Login, '/api/login')
 api.add_resource(Register, '/api/register')
+api.add_resource(Course, '/api/courses', methods=['GET', 'POST'])
+api.add_resource(Course, '/api/courses/<int:id>', methods=['PUT'], endpoint="put")
+api.add_resource(Course, '/api/courses/<int:id>', methods=['DELETE'], endpoint="delete")
 
 # driver function
 if __name__ == '__main__':
